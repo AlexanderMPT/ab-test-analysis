@@ -1,6 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
+import matplotlib.dates as mdates  # Нужно для работы с датами на оси X
 from scipy.stats import binomtest as binom_test, ttest_ind
 import os
 
@@ -87,6 +87,20 @@ common_dates = test_n.index.intersection(control_n.index)
 test_n = test_n.loc[common_dates]
 control_n = control_n.loc[common_dates]
 
+# --- ДОБАВЬТЕ ЭТИ СТРОКИ ---
+# Преобразуем индексы в формат дат, чтобы matplotlib корректно их обрабатывал
+test_n.index = pd.to_datetime(test_n.index)
+control_n.index = pd.to_datetime(control_n.index)
+
+test_users = test.groupby('date')['id'].count()
+control_users = control.groupby('date')['id'].count()
+test_conv_rate = test_n / test_users.loc[common_dates]
+control_conv_rate = control_n / control_users.loc[common_dates]
+
+# Тоже преобразуем индексы для графиков конверсии
+test_conv_rate.index = pd.to_datetime(test_conv_rate.index)
+control_conv_rate.index = pd.to_datetime(control_conv_rate.index)
+
 test_users = test.groupby('date')['id'].count()
 control_users = control.groupby('date')['id'].count()
 test_conv_rate = test_n / test_users.loc[common_dates]
@@ -94,7 +108,7 @@ control_conv_rate = control_n / control_users.loc[common_dates]
 
 # ---------- Визуализации ----------
 # 1. Количество оформленных карт по дням
-plt.figure(figsize=(14, 6))  # чуть шире
+plt.figure(figsize=(14, 6))
 ax = sns.lineplot(x=test_n.index, y=test_n.values, color='red', label='Test')
 sns.lineplot(x=control_n.index, y=control_n.values, color='blue', label='Control')
 plt.title('Количество оформленных карт по дням')
@@ -102,9 +116,13 @@ plt.xlabel('Дата')
 plt.ylabel('Конверсии')
 plt.ylim(0, None)
 
-# Настройка оси X: показывать не все даты, а с интервалом (например, каждую 7-ю)
-ax.set_xticks(ax.get_xticks()[::7])  # берём каждую 7-ю метку; можно поменять на 5,10 и т.д.
-plt.xticks(rotation=45, ha='right')
+# --- НОВЫЙ КОД НАСТРОЙКИ ОСИ X ---
+# Автоматически выбираем интервал (например, каждые 5 дней, если дней мало, или каждые 10, если много)
+interval = max(1, len(test_n) // 10)
+ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # Формат даты: Год-Месяц-День
+
+plt.setp(ax.get_xticklabels(), rotation=45, ha='right') # Поворачиваем подписи
 plt.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversions.png'))
@@ -119,8 +137,12 @@ plt.xlabel('Дата')
 plt.ylabel('Конверсия')
 plt.ylim(0, None)
 
-ax.set_xticks(ax.get_xticks()[::7])  # каждая 7-я дата
-plt.xticks(rotation=45, ha='right')
+# --- НОВЫЙ КОД НАСТРОЙКИ ОСИ X ---
+interval = max(1, len(test_n) // 10) # Тот же принцип расчёта интервала
+ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+
+plt.setp(ax.get_xticklabels(), rotation=45, ha='right') # Поворачиваем подписи
 plt.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversion_rate.png'))
