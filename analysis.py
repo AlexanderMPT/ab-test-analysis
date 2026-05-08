@@ -6,7 +6,7 @@ import os
 
 # ---------- Настройка ----------
 DATA_FILE = 'hw_ab.csv'          # Измените, если файл называется vis.csv
-OUTPUT_FILE = 'output.txt'       # Текстовые выводы
+OUTPUT_FILE = 'output.txt'       # Текстовые вывод
 PLOTS_DIR = 'plots'              # Папка для графиков
 
 # Создаём папку для графиков, если её нет
