@@ -1,6 +1,3 @@
-Вот исправленный код. Я добавил отсутствующий импорт **`import seaborn as sns`** и удалил дублирующие строки (у вас дважды считались `test_users` и `test_conv_rate`). Теперь код запустится без ошибок, а даты на графиках не будут слипаться.
-
-```python
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates  # Нужно для работы с датами на оси X
