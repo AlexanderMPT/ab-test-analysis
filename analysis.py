@@ -1,13 +1,14 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from scipy.stats import binom_test, ttest_ind
+from scipy.stats import binomtest as binom_test, ttest_ind
 import os
 
 # ---------- Настройка ----------
 DATA_FILE = 'hw_ab.csv'          # Измените, если файл называется vis.csv
-OUTPUT_FILE = 'output.txt'       # Текстовые вывод
+OUTPUT_FILE = 'output.txt'       # Текстовые выводы
 PLOTS_DIR = 'plots'              # Папка для графиков
+ALPHA = 0.05                    # Уровень значимости
 
 # Создаём папку для графиков, если её нет
 os.makedirs(PLOTS_DIR, exist_ok=True)
@@ -64,11 +65,10 @@ with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
     f.write(f'Относительный прирост: {lift*100:.2f}%\n')
 
 # ---------- Биномиальный тест ----------
-p_binom = binom_test(conv_test, n=seen_test, p=rate_control, alternative='two-sided')
-alpha = 0.05
+p_binom = binom_test(conv_test, n=seen_test, p=rate_control, alternative='two-sided').pvalue
 with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
     f.write(f'\nБиномиальный тест: p-value = {p_binom:.4f}\n')
-    f.write('Значимо на уровне 0.05\n' if p_binom < alpha else 'Не значимо на уровне 0.05\n')
+    f.write('Значимо на уровне {:.2f}\n'.format(ALPHA) if p_binom < ALPHA else 'Не значимо на уровне {:.2f}\n'.format(ALPHA))
 
 # ---------- Длительность теста ----------
 unique_dates = sorted(df['date'].unique())
@@ -148,10 +148,10 @@ t_n, p_n = ttest_ind(test_n, control_n, equal_var=False)
 with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
     f.write(f'\n--- t-тест для дневной конверсии ---\n')
     f.write(f't = {t_conv:.4f}, p-value = {p_conv:.4f}\n')
-    f.write('Значимое различие\n' if p_conv < alpha else 'Нет значимого различия\n')
+    f.write('Значимое различие\n' if p_conv < ALPHA else 'Нет значимого различия\n')
     f.write(f'\n--- t-тест для дневного числа конверсий ---\n')
     f.write(f't = {t_n:.4f}, p-value = {p_n:.4f}\n')
-    f.write('Значимое различие\n' if p_n < alpha else 'Нет значимого различия\n')
+    f.write('Значимое различие\n' if p_n < ALPHA else 'Нет значимого различия\n')
 
 # ---------- Финальное сообщение ----------
 with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
