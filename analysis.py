@@ -179,4 +179,3 @@ with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
 # ---------- Финальное сообщение ----------
 with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
     f.write('\nАнализ завершён. Графики сохранены в папке plots/\n')
-```
