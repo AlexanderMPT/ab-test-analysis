@@ -94,26 +94,33 @@ control_conv_rate = control_n / control_users.loc[common_dates]
 
 # ---------- Визуализации ----------
 # 1. Количество оформленных карт по дням
-plt.figure(figsize=(12, 5))
-sns.lineplot(x=test_n.index, y=test_n.values, color='red', label='Test')
+plt.figure(figsize=(14, 6))  # чуть шире
+ax = sns.lineplot(x=test_n.index, y=test_n.values, color='red', label='Test')
 sns.lineplot(x=control_n.index, y=control_n.values, color='blue', label='Control')
 plt.title('Количество оформленных карт по дням')
-plt.xlabel('Дата'); plt.ylabel('Конверсии')
+plt.xlabel('Дата')
+plt.ylabel('Конверсии')
 plt.ylim(0, None)
-plt.xticks(rotation=45)
+
+# Настройка оси X: показывать не все даты, а с интервалом (например, каждую 7-ю)
+ax.set_xticks(ax.get_xticks()[::7])  # берём каждую 7-ю метку; можно поменять на 5,10 и т.д.
+plt.xticks(rotation=45, ha='right')
 plt.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversions.png'))
 plt.close()
 
 # 2. Конверсия по дням
-plt.figure(figsize=(12, 5))
-sns.lineplot(x=test_conv_rate.index, y=test_conv_rate.values, color='red', label='Test')
+plt.figure(figsize=(14, 6))
+ax = sns.lineplot(x=test_conv_rate.index, y=test_conv_rate.values, color='red', label='Test')
 sns.lineplot(x=control_conv_rate.index, y=control_conv_rate.values, color='blue', label='Control')
 plt.title('Дневная конверсия')
-plt.xlabel('Дата'); plt.ylabel('Конверсия')
+plt.xlabel('Дата')
+plt.ylabel('Конверсия')
 plt.ylim(0, None)
-plt.xticks(rotation=45)
+
+ax.set_xticks(ax.get_xticks()[::7])  # каждая 7-я дата
+plt.xticks(rotation=45, ha='right')
 plt.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversion_rate.png'))
