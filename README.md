@@ -1,3 +1,5 @@
+Полное задание и решение кодом - https://colab.research.google.com/drive/1R0fI5YoW9cZ3Nkbvbb9heZpUfaQUCPDf?usp=sharing
+
 # ab-test-analysis
 a/b тест тестовых данных T-банка
 
