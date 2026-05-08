@@ -1,17 +1,17 @@
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates  # Нужно для работы с датами на оси X
-import seaborn as sns              # ДОБАВЛЕНО: убирает ошибку NameError
+import matplotlib.dates as mdates
+import seaborn as sns
 from scipy.stats import binomtest as binom_test, ttest_ind
 import os
+import numpy as np
 
 # ---------- Настройка ----------
-DATA_FILE = 'hw_ab.csv'          # Измените, если файл называется vis.csv
-OUTPUT_FILE = 'output.txt'       # Текстовые выводы
-PLOTS_DIR = 'plots'              # Папка для графиков
-ALPHA = 0.05                    # Уровень значимости
+DATA_FILE = 'hw_ab.csv'
+OUTPUT_FILE = 'output.txt'
+PLOTS_DIR = 'plots'
+ALPHA = 0.05
 
-# Создаём папку для графиков, если её нет
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 # ---------- Загрузка данных ----------
@@ -84,85 +84,98 @@ with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
 # ---------- Дневные метрики ----------
 test_n = test.groupby('date')['converted'].sum()
 control_n = control.groupby('date')['converted'].sum()
+
+# Преобразуем индексы в даты, отбрасывая невалидные
+test_n.index = pd.to_datetime(test_n.index, errors='coerce')
+test_n = test_n[test_n.index.notna()]  # убираем NaT
+
+control_n.index = pd.to_datetime(control_n.index, errors='coerce')
+control_n = control_n[control_n.index.notna()]
+
+# Общие даты после приведения к датам
 common_dates = test_n.index.intersection(control_n.index)
-test_n = test_n.loc[common_dates]
-control_n = control_n.loc[common_dates]
+test_n = test_n[common_dates]
+control_n = control_n[common_dates]
 
-# Преобразуем индексы в формат дат
-test_n.index = pd.to_datetime(test_n.index)
-control_n.index = pd.to_datetime(control_n.index)
-
+# Кол-во пользователей по дням (тоже очищаем)
 test_users = test.groupby('date')['id'].count()
-control_users = control.groupby('date')['id'].count()
-test_conv_rate = test_n / test_users.loc[common_dates]
-control_conv_rate = control_n / control_users.loc[common_dates]
+test_users.index = pd.to_datetime(test_users.index, errors='coerce')
+test_users = test_users[test_users.index.notna()]
 
-# Тоже преобразуем индексы для графиков конверсии
-test_conv_rate.index = pd.to_datetime(test_conv_rate.index)
-control_conv_rate.index = pd.to_datetime(control_conv_rate.index)
+control_users = control.groupby('date')['id'].count()
+control_users.index = pd.to_datetime(control_users.index, errors='coerce')
+control_users = control_users[control_users.index.notna()]
+
+# Дневная конверсия с защитой от деления на ноль / NaN
+test_conv_rate = (test_n / test_users.reindex(test_n.index, fill_value=0)).fillna(0)
+control_conv_rate = (control_n / control_users.reindex(control_n.index, fill_value=0)).fillna(0)
 
 # ---------- Визуализации ----------
-# 1. Количество оформленных карт по дням
-plt.figure(figsize=(14, 6))
-ax = sns.lineplot(x=test_n.index, y=test_n.values, color='red', label='Test')
-sns.lineplot(x=control_n.index, y=control_n.values, color='blue', label='Control')
-plt.title('Количество оформленных карт по дням')
-plt.xlabel('Дата')
-plt.ylabel('Конверсии')
-plt.ylim(0, None)
+if len(test_n) > 0:
+    # 1. Количество оформленных карт по дням
+    plt.figure(figsize=(14, 6))
+    ax = sns.lineplot(x=test_n.index, y=test_n.values, color='red', label='Test')
+    sns.lineplot(x=control_n.index, y=control_n.values, color='blue', label='Control')
+    plt.title('Количество оформленных карт по дням')
+    plt.xlabel('Дата')
+    plt.ylabel('Конверсии')
+    plt.ylim(0, None)
 
-# Настройка оси X для красивых дат
-interval = max(1, len(test_n) // 10)
-ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # Формат даты: Год-Месяц-День
+    interval = max(1, len(test_n) // 10)
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-plt.setp(ax.get_xticklabels(), rotation=45, ha='right') # Поворачиваем подписи
-plt.legend()
-plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversions.png'))
-plt.close()
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversions.png'))
+    plt.close()
 
-# 2. Конверсия по дням
-plt.figure(figsize=(14, 6))
-ax = sns.lineplot(x=test_conv_rate.index, y=test_conv_rate.values, color='red', label='Test')
-sns.lineplot(x=control_conv_rate.index, y=control_conv_rate.values, color='blue', label='Control')
-plt.title('Дневная конверсия')
-plt.xlabel('Дата')
-plt.ylabel('Конверсия')
-plt.ylim(0, None)
+    # 2. Конверсия по дням
+    plt.figure(figsize=(14, 6))
+    ax = sns.lineplot(x=test_conv_rate.index, y=test_conv_rate.values, color='red', label='Test')
+    sns.lineplot(x=control_conv_rate.index, y=control_conv_rate.values, color='blue', label='Control')
+    plt.title('Дневная конверсия')
+    plt.xlabel('Дата')
+    plt.ylabel('Конверсия')
+    plt.ylim(0, None)
 
-# Настройка оси X
-interval = max(1, len(test_n) // 10)
-ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
-ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+    interval = max(1, len(test_conv_rate) // 10)
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
-plt.legend()
-plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversion_rate.png'))
-plt.close()
+    plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversion_rate.png'))
+    plt.close()
 
-# 3. Гистограммы дневной конверсии
-plt.figure(figsize=(10, 5))
-plt.hist(test_conv_rate, bins=20, density=True, color='red', alpha=0.3, label='Test')
-plt.hist(control_conv_rate, bins=20, density=True, color='blue', alpha=0.3, label='Control')
-plt.title('Распределение дневной конверсии')
-plt.xlabel('Конверсия'); plt.ylabel('Плотность')
-plt.legend()
-plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, 'hist_conversion_rate.png'))
-plt.close()
+    # 3. Гистограммы дневной конверсии
+    plt.figure(figsize=(10, 5))
+    plt.hist(test_conv_rate, bins=20, density=True, color='red', alpha=0.3, label='Test')
+    plt.hist(control_conv_rate, bins=20, density=True, color='blue', alpha=0.3, label='Control')
+    plt.title('Распределение дневной конверсии')
+    plt.xlabel('Конверсия')
+    plt.ylabel('Плотность')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, 'hist_conversion_rate.png'))
+    plt.close()
 
-# 4. Гистограммы дневного количества конверсий
-plt.figure(figsize=(10, 5))
-plt.hist(test_n, bins=20, density=True, color='red', alpha=0.3, label='Test')
-plt.hist(control_n, bins=20, density=True, color='blue', alpha=0.3, label='Control')
-plt.title('Распределение дневного числа конверсий')
-plt.xlabel('Число конверсий в день'); plt.ylabel('Плотность')
-plt.legend()
-plt.tight_layout()
-plt.savefig(os.path.join(PLOTS_DIR, 'hist_daily_conversions.png'))
-plt.close()
+    # 4. Гистограммы дневного количества конверсий
+    plt.figure(figsize=(10, 5))
+    plt.hist(test_n, bins=20, density=True, color='red', alpha=0.3, label='Test')
+    plt.hist(control_n, bins=20, density=True, color='blue', alpha=0.3, label='Control')
+    plt.title('Распределение дневного числа конверсий')
+    plt.xlabel('Число конверсий в день')
+    plt.ylabel('Плотность')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(PLOTS_DIR, 'hist_daily_conversions.png'))
+    plt.close()
+else:
+    with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
+        f.write('\n⚠️ ВНИМАНИЕ: После обработки не осталось общих дат для построения графиков. Проверьте формат дат в CSV!\n')
 
 # ---------- t-тесты ----------
 t_conv, p_conv = ttest_ind(test_conv_rate, control_conv_rate, equal_var=False)
