@@ -1,6 +1,10 @@
+Вот исправленный код. Я добавил отсутствующий импорт **`import seaborn as sns`** и удалил дублирующие строки (у вас дважды считались `test_users` и `test_conv_rate`). Теперь код запустится без ошибок, а даты на графиках не будут слипаться.
+
+```python
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates  # Нужно для работы с датами на оси X
+import seaborn as sns              # ДОБАВЛЕНО: убирает ошибку NameError
 from scipy.stats import binomtest as binom_test, ttest_ind
 import os
 
@@ -10,7 +14,7 @@ OUTPUT_FILE = 'output.txt'       # Текстовые выводы
 PLOTS_DIR = 'plots'              # Папка для графиков
 ALPHA = 0.05                    # Уровень значимости
 
-# Создаём папку для графиков, если её не
+# Создаём папку для графиков, если её нет
 os.makedirs(PLOTS_DIR, exist_ok=True)
 
 # ---------- Загрузка данных ----------
@@ -87,8 +91,7 @@ common_dates = test_n.index.intersection(control_n.index)
 test_n = test_n.loc[common_dates]
 control_n = control_n.loc[common_dates]
 
-# --- ДОБАВЬТЕ ЭТИ СТРОКИ ---
-# Преобразуем индексы в формат дат, чтобы matplotlib корректно их обрабатывал
+# Преобразуем индексы в формат дат
 test_n.index = pd.to_datetime(test_n.index)
 control_n.index = pd.to_datetime(control_n.index)
 
@@ -101,11 +104,6 @@ control_conv_rate = control_n / control_users.loc[common_dates]
 test_conv_rate.index = pd.to_datetime(test_conv_rate.index)
 control_conv_rate.index = pd.to_datetime(control_conv_rate.index)
 
-test_users = test.groupby('date')['id'].count()
-control_users = control.groupby('date')['id'].count()
-test_conv_rate = test_n / test_users.loc[common_dates]
-control_conv_rate = control_n / control_users.loc[common_dates]
-
 # ---------- Визуализации ----------
 # 1. Количество оформленных карт по дням
 plt.figure(figsize=(14, 6))
@@ -116,8 +114,7 @@ plt.xlabel('Дата')
 plt.ylabel('Конверсии')
 plt.ylim(0, None)
 
-# --- НОВЫЙ КОД НАСТРОЙКИ ОСИ X ---
-# Автоматически выбираем интервал (например, каждые 5 дней, если дней мало, или каждые 10, если много)
+# Настройка оси X для красивых дат
 interval = max(1, len(test_n) // 10)
 ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))  # Формат даты: Год-Месяц-День
@@ -137,12 +134,12 @@ plt.xlabel('Дата')
 plt.ylabel('Конверсия')
 plt.ylim(0, None)
 
-# --- НОВЫЙ КОД НАСТРОЙКИ ОСИ X ---
-interval = max(1, len(test_n) // 10) # Тот же принцип расчёта интервала
+# Настройка оси X
+interval = max(1, len(test_n) // 10)
 ax.xaxis.set_major_locator(mdates.DayLocator(interval=interval))
 ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
 
-plt.setp(ax.get_xticklabels(), rotation=45, ha='right') # Поворачиваем подписи
+plt.setp(ax.get_xticklabels(), rotation=45, ha='right')
 plt.legend()
 plt.tight_layout()
 plt.savefig(os.path.join(PLOTS_DIR, 'daily_conversion_rate.png'))
@@ -185,3 +182,4 @@ with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
 # ---------- Финальное сообщение ----------
 with open(OUTPUT_FILE, 'a', encoding='utf-8') as f:
     f.write('\nАнализ завершён. Графики сохранены в папке plots/\n')
+```
